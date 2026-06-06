@@ -6,11 +6,9 @@ This document covers the design decisions specific to the Orca Predictor: how Or
 
 ## 1. Orca Readout
 
-
 The 1 Mb model (`h1esc_1m`) takes a 1 Mb sequence and predicts a **2D contact map**: a 250 × 250 matrix where entry `(i, j)` is the predicted interaction frequency between bin `i` and bin `j`. Each value in the matrix represents a 4Kbp by 4Kbp region in log scale (log fold over distance).
 
-Input length: The 1 Mb model expects sequences of exactly 1,000,000 bp. The Predictor does not pad or trim to 1 Mb itself, so the Evaluator is responsible for supplying sequences of the expected length (flanks are applied before encoding and count toward that length). Sequences shorter or longer than 1 Mb can produce unreliable results and are not recommended at this stage (see future work below).
----
+The 1 Mb model expects sequences of exactly 1,000,000 bp. The Predictor does not pad or trim to 1 Mb itself, so the Evaluator is responsible for supplying sequences of the expected length (flanks are applied before encoding and count toward that length). Sequences shorter or longer than 1 Mb can produce unreliable results and are not recommended at this stage (see future work below).
 
 ## 3. The `msgpack-numpy` response path
 
@@ -57,7 +55,7 @@ else:
 
 - Implement `prediction_ranges`
 - Allow Predictor to use HFF cell type included in it's training data
-- Encapsulate other resolution ORCA models (e.g up to 256Mbp) to allow for flexibility in sequence size
+- Encapsulate other resolution ORCA models (e.g up to 256Mbp) to allow for flexibility in sequence lengths
 - Encapsulate models HFF cell type
 - Implement functionality for custom sequence size prediction
 
