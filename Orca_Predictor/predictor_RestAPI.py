@@ -1,41 +1,17 @@
 '''RESTful Test Evaluator Utilizing Flask'''
-import os
 import sys
 import json
-from flask import Flask, request, jsonify
+from flask import Flask, request
 
+from config import HELP_FILE, PREDICTOR_NAME, SUPPORTED_REQUEST_FORMATS, SUPPORTED_RESPONSE_FORMATS
 from error_checking_functions import *
 from schema_validation import *
-# from deBoerTest_model import *
 from predictor_content_handler import decode_request, encode_response
 
 from orca_model import orca_prediction
-import msgpack
-#this patch allows the mspgpack-numpy
+#this patch allows the msgpack-numpy
 import msgpack_numpy as m
 m.patch()
-# Get the absolute path of the script's directory
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# Hardcode name of this Predictor. It will be added to ALL responses.
-# PREDICTOR_NAME = "test_predictor_deBoer"
-PREDICTOR_NAME = "ORCA_1M"
-
-# Determine if running inside a container or not
-if os.path.exists('/.singularity.d'):
-    # Running inside the container
-    print("Running inside the container...🥡")
-    HELP_FILE = "/predictor_container_apptainer/predictor_help_message.json"
-else:
-    # Running outside the container
-    print("Running outside the container...📋")
-    PREDICTOR_CONTAINER_DIR = os.path.dirname(SCRIPT_DIR)
-    HELP_FILE = os.path.join(SCRIPT_DIR, 'predictor_help_message.json')
-
-
-# ------ Configuration for Wire-Format ------
-SUPPORTED_REQUEST_FORMATS = [fmt.lower() for fmt in ["application/json", "application/msgpack"]]
-SUPPORTED_RESPONSE_FORMATS = [fmt.lower() for fmt in ["application/json", "application/msgpack", "application/msgpack-numpy"]] # JSON is always supported even when not mentioned. This is jsut to show that. 
 
 # --- Flask App and Central Error Handler ---
 app = Flask(__name__)
@@ -45,7 +21,7 @@ app.json.sort_keys = False
 
 def create_error_response(error_key, messages, status_code):
     """ 
-    Formats error response into a standarized JSON structure.
+    Formats error response into a standardized JSON structure.
     
     Args:
         error_key (str): The category of the error (e.g. 'bad_prediction_request', 'prediction_request_failed').
@@ -140,11 +116,21 @@ def predict():
                     f"ORCA only supports readout = 'conformation_chromatin'. "
                     f"Received readout = '{task.get('type')}'."
                 )
-
+                
+        # TODO: Implement support for prediction_ranges for interaction_matrix readout type.
+        # For now, reject requests that include non-empty prediction_ranges, 
+        # since we don't want to silently ignore them.
+        prediction_ranges = evaluator_request.get('prediction_ranges', {})
+        if any(pr for pr in prediction_ranges.values()):
+            raise PredictionFailedError(
+                f"ORCA currently does not support prediction_ranges. "
+                f"Please send the request without prediction_ranges or with empty prediction_ranges (e.g. {{'seq1': [], 'seq2': []}})."
+            )
+            
 
         # ---- Run ORCA ----
         # orca_prediction expects a dict {seq_id: dna_string}
-        orca_preds = orca_prediction(sequences)  # returns {seq_id: np.ndarray}
+        orca_preds = orca_prediction(sequences)  # returns {seq_id: np.ndarray (250x250)}
 
         #Run a quick check here to see if the Evaluator can receive msgpack-numpy
         accept_header = request.headers.get("Accept", "").lower()
@@ -164,7 +150,7 @@ def predict():
                 'name': task['name'],
 
                 'type_requested': task['type'],
-                'type_actual': ['HI-C'],  # matches your TCP version
+                'type_actual': ['HI-C'],
 
                 'cell_type_requested': task['cell_type'],
                 'cell_type_actual': 'H1-ESC',
@@ -191,7 +177,7 @@ def predict():
         # Known API errors
         if isinstance(e, APIError):
             raise e
-        # Anything else → 500
+        # Anything else -> 500
         raise ServerError(f"An unexpected internal error occurred: {e}.")
     
     

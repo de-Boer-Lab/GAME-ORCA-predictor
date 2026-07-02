@@ -1,7 +1,5 @@
 '''Error Classes and Error Checking Functions for Predictor'''
 
-import numpy as np
-
 # ERROR CLASSES
 # Error classes can be added here to easily keep track of error status codes
 
@@ -69,7 +67,14 @@ def check_seqs_specifications(sequences, json_return_error_model):
 
 def check_mandatory_keys(evaluator_keys, json_return_error):
     """
-    Top-level mandatory keys in the request JSON.
+    Check that all mandatory top-level keys are present in the payload
+
+    Args:
+        evaluator_keys (list): list of keys present in the Evaluator payload
+        json_return_error (dict): dictionary to store error messages
+
+    Returns:
+        dict: Updated json_return_error with any missing key errors added
     """
     mandatory_keys = ["readout", "prediction_tasks", "sequences"]  # NOTE: "request" removed
     evaluator_keys_set = set(evaluator_keys)
@@ -130,7 +135,7 @@ def check_prediction_task_name(prediction_tasks, json_return_error):
 
 def check_prediction_task_type(prediction_tasks, json_return_error):
     """
-    For ORCA, we support chromatin_conformation (plus any binding_* if ever used).
+    For ORCA, we support conformation_chromatin (plus any binding_* if ever used).
     """
     prediction_task_options = ["conformation_chromatin"]
 
@@ -203,10 +208,14 @@ def check_prediction_task_scale(prediction_tasks, json_return_error):
     return json_return_error
 
 
-def check_prediction_ranges(prediction_ranges, sequences, json_return_error):
+def check_prediction_ranges(prediction_ranges, json_return_error):
     """
     Checks that prediction_ranges are formatted correctly.
     Now includes checks for positive integers and start <= end.
+    
+    NOTE: Out-of-bounds checks are performed in preprocess_data() after
+    flanking sequences are applied, since prediction_ranges indices
+    refer to the flanked sequence.
     """
     for key, value in prediction_ranges.items():
         
@@ -214,6 +223,7 @@ def check_prediction_ranges(prediction_ranges, sequences, json_return_error):
             json_return_error['bad_prediction_request'].append(
                 f"Values for '{key}' in 'prediction_ranges' must be in a list"
             )
+            continue
             
         if not value:
             continue
@@ -222,11 +232,13 @@ def check_prediction_ranges(prediction_ranges, sequences, json_return_error):
             json_return_error['bad_prediction_request'].append(
                 f"Range array for '{key}' in 'prediction_ranges' must have 2 elements"
             )
+            continue
         
         if not all(isinstance(num, int) for num in value):
             json_return_error['bad_prediction_request'].append(
                 f"Values in '{key}' in 'prediction_ranges' must be integers"
             )
+            continue
         
         start = value[0]
         end = value[1]
@@ -242,20 +254,6 @@ def check_prediction_ranges(prediction_ranges, sequences, json_return_error):
                 f"Invalid range for '{key}' in 'prediction_ranges': start index ({start}) "
                 f"cannot be greater than end index ({end}). Received [{start}, {end}]"
             )
-
-        seq_len = len(sequences.get(key, ''))
-        if start >= seq_len or end >= seq_len:
-            if seq_len == 0:
-                 err_msg = (
-                     f"Invalid range for '{key}': cannot specify a range for a non-existent "
-                     "or empty sequence."
-                 )
-            else:
-                err_msg = (
-                    f"Invalid range for '{key}': index is out of bounds. The maximum valid "
-                    f"index for a sequence of length {seq_len} is {seq_len - 1}."
-                )
-            json_return_error['bad_prediction_request'].append(err_msg)
     
     return json_return_error
 

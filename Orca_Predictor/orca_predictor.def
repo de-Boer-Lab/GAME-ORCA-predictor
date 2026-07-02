@@ -1,9 +1,15 @@
 Bootstrap: docker
 From: python:3.13-slim
-Stage: build
 
 %files
-    ../Orca_Predictor /Orca_Predictor
+    ./predictor_RestAPI.py /Orca_Predictor/predictor_RestAPI.py
+    ./config.py /Orca_Predictor/config.py
+    ./orca_model.py /Orca_Predictor/orca_model.py
+    ./error_checking_functions.py /Orca_Predictor/error_checking_functions.py
+    ./schema_validation.py /Orca_Predictor/schema_validation.py
+    ./predictor_content_handler.py /Orca_Predictor/predictor_content_handler.py
+    ./predictor_help_message.json /Orca_Predictor/predictor_help_message.json
+
 %environment
     # Prevent binding of host directories by default
     export APPTAINER_NO_MOUNT="home,tmp,proc,sys,dev"
@@ -84,29 +90,14 @@ Stage: build
 
 %labels
     Author "Rui Guo"
-    Version "3.0"
-    Description "This container is the Predictor set up for Genomic API for Model Evaluation using the Orca model."
+    game_schema_version "1.0"
+    Description "This container is the Predictor set up for the ORCA model using the GAME framework."
 
 %help
     This container for Predictor includes:
     - Predictor script for sequence processing and error handling.
     - Integrated Orca model with its dependencies and orca_env conda environment.
-    - Support scripts like `api_preprocessing_utils.py`, `error_message_functions_updated.py`, and `predictor_help_message.json`.
-
-    Usage:
-    If you are building the container using this definition file, ensure you have the following directory structure on the host:
-    ```
-    /orca_predictor
-    ├── orca_predictor.def
-    ├── orca_predictor.sif
-    ├── orca_scripts
-    │   └── run_prediction.py
-    ```
-    
-    Build the container (SIF)
-    ```
-    apptainer build orca_predictor.sif orca_predictor.def
-    ```
+    - Support scripts for error checking, schema validation, etc.
 
     Run the container
     ```
@@ -114,7 +105,8 @@ Stage: build
     ```
 
     Details:
-    - The container receives data via a TCP socket and doesn’t require mounted data directories.
+    - The container exposes an HTTP REST API (Flask) on HOST:PORT and does not require mounted data directories. 
+    - Evaluators communicate with it over HTTP (GET /formats, GET /help, POST /predict).
     - Replace `HOST` and `PORT` with the server and port configuration for the evaluator.
 
     Purpose:
@@ -123,7 +115,7 @@ Stage: build
 
     Example Command:
     ```
-    apptainer run predictor.sif 172.16.47.244 5000
+    apptainer run predictor.sif 172.xx.xx.xxx 5000
     ```
 
     Arguments:

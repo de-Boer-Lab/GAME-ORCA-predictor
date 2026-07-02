@@ -1,8 +1,7 @@
 {
-  "model": "Orca",
-  "version": "1.1",
+  "model": "Orca 1M",
+  "game_schema_version": "1.0",
   "publication" : "Zhou, J. 2022",
-  "build_date": "Nov 28, 2025",
   "features": ["chromatin_conformation"],
   "cell_types" : ["H1-ESC"],
   "species": ["homo_sapiens"],
