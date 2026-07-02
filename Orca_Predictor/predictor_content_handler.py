@@ -27,8 +27,8 @@ def decode_request(supported_request_formats):
     if not content_type_header:
         print("Missing Content-Type header. Try to decode with JSON default.")
         content_type =  "application/json"
-        
-    content_type = content_type_header.lower()
+    else:
+        content_type = content_type_header.lower()
     
     if content_type not in supported_request_formats:
         raise BadRequestError(f"Unsupported Content-Type: {content_type}. Must be one of {supported_request_formats}")

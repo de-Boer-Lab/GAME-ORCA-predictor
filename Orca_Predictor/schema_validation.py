@@ -32,7 +32,7 @@ def validate_request_payload(payload):
 
     if 'prediction_ranges' in payload:
         errors = check_seq_ids(payload['prediction_ranges'], payload['sequences'], errors)
-        errors = check_prediction_ranges(payload['prediction_ranges'], payload['sequences'], errors)
+        errors = check_prediction_ranges(payload['prediction_ranges'], errors)
 
     if 'upstream_seq' in payload:
         errors = check_key_values_upstream_flank(payload['upstream_seq'], errors)
@@ -54,7 +54,7 @@ def preprocess_data(payload):
     """
     sequences = payload.get('sequences', {})
 
-    # Model-specific: Note that flanking sequences are present but not used by this model
+    # Model-specific: Append flanking sequences if present; prediction ranges are applied with respect to the flanked sequences.
     if 'upstream_seq' in payload or 'downstream_seq' in payload:
         upstream_seq = payload.get('upstream_seq', "")
         downstream_seq = payload.get('downstream_seq', "")
@@ -74,22 +74,32 @@ def preprocess_data(payload):
                 flanked = f"{upstream_seq}{sequence}{downstream_seq}"
                 sequences[seq_id] = flanked
 
-    # Apply prediction_ranges if provided
-    if 'prediction_ranges' in payload:
-        for seq_id, pr in payload['prediction_ranges'].items():
-            if pr: # Only process non-empty ranges
-                start, end = pr
-                # Slice the sequence. `prediction_range` is start, end inclusive
-                sequences[seq_id] = sequences[seq_id][start:end+1]
-                print(f"Sequence '{seq_id}' trimmed to prediction range [{start}, {end}].")
-    
     # Check that the final sequences meet model specifications.
     # Since this is model-specific, it utilizes `PredictionFailedError`.
     errors = {'prediction_request_failed': []}
     errors = check_seqs_specifications(sequences, errors)
+    
+    # NOTE: prediction_ranges are not currently supported by ORCA 1M.
+    # Non empty ranges are rejected in the server before reaching this point
+    # TODO: When prediction_ranges are supported, uncomment the code below and implement 
+    # the logic to apply the prediction ranges to the output matrices.
+    
+    # # Check prediction ranges
+    # if 'prediction_ranges' in payload:
+    #     for seq_id, pr in payload['prediction_ranges'].items():
+    #         if pr: # Only process non-empty ranges
+    #             start, end = pr
+
+    #             if start >= len(sequences[seq_id]) or end >= len(sequences[seq_id]):
+    #                 err_msg = (
+    #                     f"Invalid range for '{seq_id}': index is out of bounds. "
+    #                     f"The maximum valid index for a sequence of length "
+    #                     f"{len(sequences[seq_id])} is {len(sequences[seq_id]) - 1}."
+    #                 )
+    #                 errors['prediction_request_failed'].append(err_msg)
 
     if any(errors.values()):
         flagged_errors = [msg for sublist in errors.values() for msg in sublist]
         raise PredictionFailedError(flagged_errors)
-    
+
     return sequences
