@@ -8,6 +8,14 @@ Unlike sequence-scoring Predictors that return a scalar (`point`) or a per-base 
 
 **Container:** Rui (Grey) Guo, with edits from Ishika Luthra and Satyam Priyadarshi.
 
+## Important Links
+
+- To learn more about the GAME Framework ([Main GAME Repository](https://github.com/de-Boer-Lab/Genomic-API-for-Model-Evaluation), [preprint](https://www.biorxiv.org/content/10.1101/2025.07.04.663250v1.full))
+- GAME Documentation: [ReadTheDocs](https://genomic-api-for-model-evaluation-documentation.readthedocs.io)
+- Pre-built ORCA container image: [Hugging Face](https://huggingface.co/datasets/deBoerLab/Orca_Predictor_GAME/)
+- To learn more about Orca: [Orca GitHub Repository](https://github.com/jzhoulab/orca)
+- List of all [GAME Modules](https://github.com/de-Boer-Lab/GAME_modules)
+
 ---
 
 ## What it predicts
